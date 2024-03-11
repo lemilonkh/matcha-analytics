@@ -1,11 +1,11 @@
-use matcha_analytics::startup::run;
+use matcha_analytics::{configuration::get_configuration, startup::run};
 use std::net::TcpListener;
-
-const SERVER_URL: &str = "127.0.0.1:8000";
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let listener = TcpListener::bind(SERVER_URL)?;
-    println!("Listening on http://{SERVER_URL}");
+    let configuration = get_configuration().expect("Failed to read configuration");
+    let address = &format!("127.0.0.1:{}", configuration.application_port);
+    let listener = TcpListener::bind(address)?;
+    println!("Listening on http://{address}");
     run(listener)?.await
 }
