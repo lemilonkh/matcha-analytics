@@ -1,6 +1,7 @@
 use std::net::TcpListener;
 
-use matcha_analytics::startup::run;
+use matcha_analytics::{configuration::get_configuration, startup::run};
+use sqlx::{Connection, PgConnection};
 
 /// Start app on a random unused port and return its address
 fn spawn_app() -> String {
@@ -35,6 +36,11 @@ async fn health_check_works() {
 async fn subscribe_returns_a_200_for_valid_form_data() {
     // Arrange
     let app_address = spawn_app();
+    let configuration = get_configuration().expect("Failed to read configuration");
+    let connection_string = configuration.database.connection_string();
+    let connection = PgConnection::connect(&connection_string)
+        .await
+        .expect("Failed to connect to Postgres.");
     let client = reqwest::Client::new();
 
     let body = "name=just%20me&email=me@example.com";
