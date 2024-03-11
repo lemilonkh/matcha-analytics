@@ -1,6 +1,6 @@
 use std::net::TcpListener;
 
-use matcha_analytics::run;
+use matcha_analytics::startup::run;
 
 /// Start app on a random unused port and return its address
 fn spawn_app() -> String {

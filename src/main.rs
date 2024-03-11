@@ -1,4 +1,4 @@
-use matcha_analytics::run;
+use matcha_analytics::startup::run;
 use std::net::TcpListener;
 
 const SERVER_URL: &str = "127.0.0.1:8000";
@@ -9,4 +9,3 @@ async fn main() -> Result<(), std::io::Error> {
     println!("Listening on http://{SERVER_URL}");
     run(listener)?.await
 }
-
