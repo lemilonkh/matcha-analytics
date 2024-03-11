@@ -1,7 +1,11 @@
 use std::net::TcpListener;
 
-use matcha_analytics::{configuration::get_configuration, startup::run};
-use sqlx::PgPool;
+use matcha_analytics::{
+    configuration::{get_configuration, DatabaseSettings},
+    startup::run,
+};
+use sqlx::{Connection, Executor, PgConnection, PgPool};
+use uuid::Uuid;
 
 pub struct TestApp {
     pub address: String,
@@ -15,14 +19,33 @@ async fn spawn_app() -> TestApp {
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
 
-    let configuration = get_configuration().expect("Failed to read configuration");
-    let db_pool = PgPool::connect(&configuration.database.connection_string())
-        .await
-        .expect("Failed to connect to Postgres");
-
+    let mut configuration = get_configuration().expect("Failed to read configuration");
+    // randomize database name to isolate tests
+    configuration.database.database_name = format!("matcha_test_{}", Uuid::new_v4());
+    let db_pool = configure_database(&configuration.database).await;
     let server = run(listener, db_pool.clone()).expect("Failed to bind address");
     std::mem::drop(tokio::spawn(server));
     TestApp { address, db_pool }
+}
+
+pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
+    let mut connection = PgConnection::connect(&config.connection_string_without_db())
+        .await
+        .expect("Failed to connect to Postgres");
+    connection
+        .execute(&*format!(r#"CREATE DATABASE "{}";"#, config.database_name))
+        .await
+        .expect("Failed to create database");
+
+    let connection_pool = PgPool::connect(&config.connection_string())
+        .await
+        .expect("Failed to connect to Postgres");
+    sqlx::migrate!("./migrations")
+        .run(&connection_pool)
+        .await
+        .expect("Failed to run migrations");
+
+    connection_pool
 }
 
 #[tokio::test]
@@ -70,7 +93,6 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
 #[tokio::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {
-    // Arrange
     let app = spawn_app().await;
     let client = reqwest::Client::new();
     let test_cases = vec![
