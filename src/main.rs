@@ -3,11 +3,13 @@ use sqlx::PgPool;
 use std::net::TcpListener;
 use tracing::subscriber::set_global_default;
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
+use tracing_log::LogTracer;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     // logging setup with tracing
+    LogTracer::init().expect("Failed to set logger");
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     let formatting_layer = BunyanFormattingLayer::new("matcha_analytics".into(), std::io::stdout);
     let subscriber = Registry::default()
