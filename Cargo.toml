@@ -38,3 +38,6 @@ features = [
   "chrono",
   "migrate",
 ]
+
+[profile.release]
+strip = true # Automatically strip symbols from binary
