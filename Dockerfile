@@ -1,10 +1,19 @@
-FROM rust:1.76.0 AS builder
-
+FROM lukemathwalker/cargo-chef:latest-rust-1.76.0 as chef
 WORKDIR /app
 RUN apt-get update && apt-get install -y lld clang --no-install-recommends
+
+FROM chef as planner
+COPY . .
+# Compute a lock-like file for the project
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef as builder
+COPY --from=planner /app/recipe.json recipe.json
+# Build project dependencies
+RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 ENV SQLX_OFFLINE true
-RUN cargo build --release
+RUN cargo build --release --bin matcha_analytics
 
 FROM debian:bookworm-slim as runtime
 
