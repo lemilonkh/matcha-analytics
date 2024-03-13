@@ -10,6 +10,7 @@ pub fn get_subscriber<Sink>(
     sink: Sink,
 ) -> impl Subscriber + Send + Sync
 where
+    // Higher-ranked trait bound (HRTB) - for all values of lifetime 'a it implements MakeWriter
     Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
 {
     let env_filter =
