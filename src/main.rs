@@ -9,7 +9,7 @@ use std::net::TcpListener;
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     // logging setup with tracing
-    let subscriber = get_subscriber("matcha_analytics".into(), "info".into());
+    let subscriber = get_subscriber("matcha_analytics".into(), "info".into(), std::io::stdout);
     init_subscriber(subscriber);
 
     let configuration = get_configuration().expect("Failed to read configuration");
