@@ -41,5 +41,8 @@ features = [
   "migrate",
 ]
 
+[dev-dependencies]
+claims = "0.7"
+
 [profile.release]
 strip = true # Automatically strip symbols from binary
