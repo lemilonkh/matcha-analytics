@@ -1,0 +1,30 @@
+# fly.toml app configuration file generated for matcha-analytics on 2024-03-13T19:09:14+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'matcha-analytics'
+primary_region = 'ams'
+
+[build]
+
+[http_service]
+internal_port = 8000
+force_https = true
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 0
+processes = ['app']
+
+[[vm]]
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 1
+
+[[http_service.checks]]
+grace_period = "10s"
+interval = "30s"
+method = "GET"
+path = "/health_check"
+protocol = "http"
+timeout = "5s"
