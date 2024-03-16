@@ -6,3 +6,8 @@ database:
   username: "postgres"
   password: "password"
   database_name: "matcha_analytics"
+email_client:
+  base_url: "localhost"
+  sender_email: "test@example.com"
+  authorization_token: "change_me"
+  timeout_milliseconds: 6000
