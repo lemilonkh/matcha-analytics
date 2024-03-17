@@ -1,9 +1,6 @@
-use std::net::TcpListener;
-
 use matcha_analytics::{
     configuration::{get_configuration, DatabaseSettings},
-    email_client::EmailClient,
-    startup::run,
+    startup::{get_connection_pool, Application},
     telemetry::{get_subscriber, init_subscriber},
 };
 use once_cell::sync::Lazy;
@@ -34,31 +31,28 @@ pub struct TestApp {
 pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
 
-    // port 0 searches for an available port
-    let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
-    let port = listener.local_addr().unwrap().port();
-    let address = format!("http://127.0.0.1:{}", port);
+    // Randomize configuration to ensure test isolation
+    let configuration = {
+        let mut c = get_configuration().expect("Failed to read configuration");
+        // Use a different database for each test case
+        c.database.database_name = format!("matcha_test_{}", Uuid::new_v4());
+        // Use a random OS port
+        c.application.port = 0;
+        c
+    };
 
-    let mut configuration = get_configuration().expect("Failed to read configuration");
-    // randomize database name to isolate tests
-    configuration.database.database_name = format!("matcha_test_{}", Uuid::new_v4());
-    let db_pool = configure_database(&configuration.database).await;
+    configure_database(&configuration.database).await;
 
-    let sender_email = configuration
-        .email_client
-        .sender()
-        .expect("Invalid sender email address");
-    let timeout = configuration.email_client.timeout();
-    let email_client = EmailClient::new(
-        configuration.email_client.base_url,
-        sender_email,
-        configuration.email_client.authorization_token,
-        timeout,
-    );
+    let application = Application::build(configuration.clone())
+        .await
+        .expect("Failed to build application");
+    let address = format!("http://127.0.0.1:{}", application.port());
+    std::mem::drop(tokio::spawn(application.run_until_stopped()));
 
-    let server = run(listener, db_pool.clone(), email_client).expect("Failed to bind address");
-    std::mem::drop(tokio::spawn(server));
-    TestApp { address, db_pool }
+    TestApp {
+        address,
+        db_pool: get_connection_pool(&configuration.database),
+    }
 }
 
 async fn configure_database(config: &DatabaseSettings) -> PgPool {
