@@ -123,3 +123,9 @@ impl DatabaseSettings {
             .log_statements(tracing::log::LevelFilter::Trace)
     }
 }
+
+impl EmailClientSettings {
+    pub fn timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.timeout_milliseconds)
+    }
+}
