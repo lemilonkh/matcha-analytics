@@ -1,10 +1,20 @@
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, ResponseTemplate};
+
 use crate::helpers::spawn_app;
 
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
     let app = spawn_app().await;
+    let body = "name=just%20me&email=me%40example.com";
 
-    let body = "name=just%20me&email=me@example.com";
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.email_server)
+        .await;
+
     let response = app.post_subscriptions(body.into()).await;
     assert_eq!(200, response.status().as_u16());
 
@@ -42,7 +52,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
     let app = spawn_app().await;
     let test_cases = vec![
-        ("name=&email=me@example.com", "empty name"),
+        ("name=&email=me%40example.com", "empty name"),
         ("name=Bob&email=", "empty email"),
         ("name=Bob&email=definitely-not-an-email", "invalid email"),
     ];
@@ -57,4 +67,19 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
             description,
         );
     }
+}
+
+#[tokio::test]
+async fn subscribe_sends_a_confirmation_email_for_valid_data() {
+    let app = spawn_app().await;
+    let body = "name=Test%20User&email=test.user%40example.com";
+
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.email_server)
+        .await;
+
+    app.post_subscriptions(body.into()).await;
 }
