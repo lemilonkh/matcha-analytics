@@ -50,6 +50,7 @@ quickcheck_macros = "1.0"
 rand = "0.8"
 rand_core = "0.6"
 wiremock = "0.6"
+linkify = "0.10"
 
 [profile.release]
 strip = true # Automatically strip symbols from binary
